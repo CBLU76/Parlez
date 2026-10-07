@@ -1,158 +1,65 @@
-<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Parlez! – Französisch hören und nachsprechen</title>
 <style>
-:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#13233f;background:#f4f7fb}
-*{box-sizing:border-box}
-body{margin:0;padding:22px}
-main{max-width:900px;margin:auto;background:#fff;border-radius:24px;padding:30px;box-shadow:0 10px 34px #17345a18}
-h1{margin:0 0 5px;color:#0c2c60;font-size:36px}
-.lead{margin:0 0 24px;color:#59677d;font-size:17px}
-label{display:block;font-weight:750;margin:0 0 8px}
-textarea{width:100%;min-height:270px;padding:16px;border:1px solid #c4cede;border-radius:14px;font:inherit;font-size:18px;line-height:1.55;resize:vertical;color:#14233c;background:#fff}
-.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:17px}
-button{min-height:48px;border:0;border-radius:12px;padding:0 19px;font:inherit;font-weight:750;cursor:pointer}
-#normal{background:#315bea;color:#fff}
-#slow{background:#e7edff;color:#244ba7}
-#stop{background:#edf0f4;color:#3c4658}
-button:disabled{opacity:.45;cursor:not-allowed}
-.status{margin-top:17px;padding:13px 15px;border-radius:12px;background:#f2f5f9;color:#43516a;line-height:1.4}
-.warning{display:none;margin-bottom:18px;padding:14px 16px;border-radius:12px;background:#fff4d7;color:#624a09;line-height:1.45}
-.meta{margin-top:10px;color:#758197;font-size:13px}
-.help{margin-top:24px;padding-top:18px;border-top:1px solid #e4e9f0;color:#66748a;font-size:14px;line-height:1.55}
-@media(max-width:600px){body{padding:9px}main{padding:20px;border-radius:18px}h1{font-size:30px}textarea{min-height:240px}.actions button{flex:1 1 135px}}
-</style>
-</head>
-<body>
-<main>
-<h1>🇫🇷 Parlez!</h1>
-<p class="lead">Schreibe etwas auf Französisch, höre gut zu und sprich es nach.</p>
-
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#13233f;background:#f4f7fb}*{box-sizing:border-box}body{margin:0;padding:22px}
+main{max-width:900px;margin:auto;background:#fff;border-radius:24px;padding:30px;box-shadow:0 10px 34px #17345a18}h1{margin:0 0 5px;color:#0c2c60;font-size:36px}
+.lead{margin:0 0 24px;color:#59677d;font-size:17px}label{display:block;font-weight:750;margin:0 0 8px}
+textarea{width:100%;min-height:260px;padding:16px;border:1px solid #c4cede;border-radius:14px;font:inherit;font-size:18px;line-height:1.55;resize:vertical;color:#14233c}
+.options{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}.options strong{margin-right:4px}
+.choice{display:flex;align-items:center;gap:7px;padding:9px 13px;border:1px solid #d5dcea;border-radius:11px;cursor:pointer}.choice input{width:18px;height:18px}
+.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:16px}button{min-height:48px;border:0;border-radius:12px;padding:0 18px;font:inherit;font-weight:750;cursor:pointer}
+#play,#resume{background:#315bea;color:#fff}#restart{background:#e7edff;color:#244ba7}#stop{background:#edf0f4;color:#3c4658}button:disabled{opacity:.4;cursor:not-allowed}
+.status{margin-top:17px;padding:13px 15px;border-radius:12px;background:#f2f5f9;color:#43516a}.warning{display:none;margin-bottom:18px;padding:14px 16px;border-radius:12px;background:#fff4d7;color:#624a09}
+.meta{margin-top:9px;color:#758197;font-size:13px}.help{margin-top:22px;padding-top:17px;border-top:1px solid #e4e9f0;color:#66748a;font-size:14px}
+@media(max-width:600px){body{padding:9px}main{padding:20px;border-radius:18px}h1{font-size:30px}.actions button{flex:1 1 140px}}
+</style></head><body><main>
+<h1>🇫🇷 Parlez!</h1><p class="lead">Schreibe etwas auf Französisch, höre gut zu und sprich es nach.</p>
 <div id="warning" class="warning"></div>
-
 <label for="text">Dein französischer Text</label>
-<textarea id="text" lang="fr" spellcheck="true" placeholder="Écris ton texte ici…">Ma sœur habite à Paris. Elle aime surtout les cours de maths.</textarea>
-
+<textarea id="text" lang="fr" spellcheck="true">Ma sœur habite à Paris. Elle aime surtout les cours de maths.</textarea>
+<div class="options"><strong>Geschwindigkeit:</strong>
+<label class="choice"><input type="radio" name="speed" value="1" checked> Normal</label>
+<label class="choice"><input type="radio" name="speed" value=".78"> 🐢 Langsam</label></div>
 <div class="actions">
-  <button id="normal">▶ Anhören</button>
-  <button id="slow">🐢 Langsam</button>
-  <button id="stop">■ Stoppen</button>
+<button id="play">▶ Anhören</button><button id="stop">■ Stoppen</button>
+<button id="resume" disabled>▶ Weiter</button><button id="restart" disabled>↩ Von vorne</button>
 </div>
-
-<div id="status" class="status" aria-live="polite">Französische Stimme wird vorbereitet …</div>
-<div id="meta" class="meta"></div>
-
-<div class="help">
-  Tipp: Höre einen Satz mehrmals an und sprich ihn anschließend laut nach.
-  Für die beste französische Aussprache ist <strong>Google Chrome</strong> vorgesehen.
-</div>
-</main>
-
-<script>
-const textEl=document.getElementById("text");
-const normalBtn=document.getElementById("normal");
-const slowBtn=document.getElementById("slow");
-const stopBtn=document.getElementById("stop");
-const statusEl=document.getElementById("status");
-const warningEl=document.getElementById("warning");
-const metaEl=document.getElementById("meta");
-
-let selectedVoice=null, runToken=0, stopped=false;
-
-function isChrome(){
-  const ua=navigator.userAgent;
-  return /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua);
+<div id="status" class="status" aria-live="polite">Französische Stimme wird vorbereitet …</div><div id="meta" class="meta"></div>
+<div class="help">Parlez ist für <strong>Google Chrome</strong> mit der getesteten Stimme <strong>Google français (fr-FR)</strong> eingerichtet.</div>
+</main><script>
+const $=id=>document.getElementById(id), textEl=$("text"), play=$("play"), stop=$("stop"), resume=$("resume"), restart=$("restart"), status=$("status"), warning=$("warning"), meta=$("meta");
+let voice=null,chunks=[],index=0,token=0,playing=false,hasProgress=false,snapshot="",rate=1;
+function chrome(){return /Chrome\//.test(navigator.userAgent)&&!/Edg\/|OPR\//.test(navigator.userAgent)}
+function choose(){
+ const fr=speechSynthesis.getVoices().filter(v=>/^fr([-_]|$)/i.test(v.lang));
+ voice=fr.find(v=>/google français/i.test(v.name)&&/^fr[-_]FR$/i.test(v.lang))||fr.find(v=>/google/i.test(v.name)&&/^fr[-_]FR$/i.test(v.lang))||null;
+ if(voice){play.disabled=false;warning.style.display="none";status.textContent="Bereit.";meta.textContent=`Stimme: ${voice.name} · ${voice.lang}`}
+ else{play.disabled=true;warning.style.display="block";warning.innerHTML=chrome()?"<strong>Google français (fr-FR) wurde nicht gefunden.</strong>":"<strong>Bitte öffne Parlez mit Google Chrome.</strong>";status.textContent="Die getestete Stimme ist nicht verfügbar.";meta.textContent=""}
 }
-function chooseVoice(){
-  const voices=speechSynthesis.getVoices();
-  const fr=voices.filter(v=>/^fr([-_]|$)/i.test(v.lang));
-  selectedVoice =
-    fr.find(v=>/google français/i.test(v.name) && /^fr[-_]FR$/i.test(v.lang)) ||
-    fr.find(v=>/google/i.test(v.name) && /^fr[-_]FR$/i.test(v.lang)) ||
-    null;
-
-  if(selectedVoice){
-    normalBtn.disabled=slowBtn.disabled=false;
-    statusEl.textContent="Bereit.";
-    metaEl.textContent="Stimme: "+selectedVoice.name+" · "+selectedVoice.lang;
-    warningEl.style.display="none";
-  }else{
-    normalBtn.disabled=slowBtn.disabled=true;
-    metaEl.textContent="";
-    warningEl.style.display="block";
-    warningEl.innerHTML=isChrome()
-      ? "<strong>Google français (fr-FR) wurde auf diesem Gerät nicht gefunden.</strong><br>Parlez verwendet absichtlich keine andere Stimme, damit die Aussprachequalität nicht unbemerkt schlechter wird."
-      : "<strong>Bitte öffne Parlez mit Google Chrome.</strong><br>Die getestete Stimme Google français (fr-FR) ist in diesem Browser nicht verfügbar.";
-    statusEl.textContent="Die getestete französische Stimme ist nicht verfügbar.";
-  }
+function split(t){
+ t=t.replace(/\r/g,"").trim();if(!t)return[];
+ let a=t.split(/(?<=[.!?…])\s+|\n+/u).map(x=>x.trim()).filter(Boolean),o=[];
+ for(let s of a){while(s.length>240){let c=Math.max(s.lastIndexOf("; ",240),s.lastIndexOf(", ",240),s.lastIndexOf(" ",240));if(c<90)c=240;o.push(s.slice(0,c+1).trim());s=s.slice(c+1).trim()}if(s)o.push(s)}return o
 }
-
-function splitText(text){
-  text=text.replace(/\r/g,"").trim();
-  if(!text) return [];
-  let sentences=text.split(/(?<=[.!?…])\s+|\n+/u).map(x=>x.trim()).filter(Boolean);
-  const result=[];
-  for(let s of sentences){
-    while(s.length>240){
-      let candidates=[s.lastIndexOf("; ",240),s.lastIndexOf(", ",240),s.lastIndexOf(" ",240)];
-      let cut=Math.max(...candidates);
-      if(cut<90) cut=240;
-      result.push(s.slice(0,cut+1).trim());
-      s=s.slice(cut+1).trim();
-    }
-    if(s) result.push(s);
-  }
-  return result;
+function speed(){return Number(document.querySelector('input[name="speed"]:checked').value)}
+function setButtons(){resume.disabled=!hasProgress||playing;restart.disabled=!hasProgress;stop.disabled=!playing;play.disabled=!voice||playing}
+function speakFrom(i){
+ if(!voice)return; if(!chunks.length)return;
+ speechSynthesis.cancel();playing=true;const mine=++token;index=i;setButtons();
+ function next(){
+  if(mine!==token||!playing)return;
+  if(index>=chunks.length){playing=false;hasProgress=false;index=0;status.textContent="Fertig – jetzt nachsprechen! 🇫🇷";setButtons();return}
+  const u=new SpeechSynthesisUtterance(chunks[index]);u.voice=voice;u.lang="fr-FR";u.rate=rate;u.pitch=1;u.volume=1;
+  const shown=index+1,total=chunks.length;u.onstart=()=>status.textContent=`▶ Abschnitt ${shown} von ${total}`;
+  u.onend=()=>{if(mine!==token||!playing)return;index++;hasProgress=index<chunks.length;setTimeout(next,100)};
+  u.onerror=e=>{if(e.error==="canceled"||e.error==="interrupted")return;playing=false;hasProgress=true;status.textContent="Sprachausgabe unterbrochen.";setButtons()};
+  speechSynthesis.speak(u)
+ } next()
 }
-
-function speak(rate){
-  if(!selectedVoice){chooseVoice();return;}
-  const chunks=splitText(textEl.value);
-  if(!chunks.length){statusEl.textContent="Bitte zuerst einen französischen Text eingeben.";return;}
-
-  speechSynthesis.cancel();
-  stopped=false;
-  const token=++runToken;
-  let i=0;
-
-  function next(){
-    if(stopped || token!==runToken) return;
-    if(i>=chunks.length){
-      statusEl.textContent="Fertig – jetzt nachsprechen! 🇫🇷";
-      return;
-    }
-    const u=new SpeechSynthesisUtterance(chunks[i]);
-    u.voice=selectedVoice;
-    u.lang="fr-FR";
-    u.rate=rate;
-    u.pitch=1;
-    u.volume=1;
-    const current=i+1, total=chunks.length;
-    u.onstart=()=>statusEl.textContent=`▶ Abschnitt ${current} von ${total}`;
-    u.onend=()=>{i++; setTimeout(next,100);};
-    u.onerror=e=>{
-      if(e.error==="canceled" || e.error==="interrupted") return;
-      statusEl.textContent="Die Sprachausgabe wurde unterbrochen. Bitte nochmals versuchen.";
-    };
-    speechSynthesis.speak(u);
-  }
-  next();
-}
-
-normalBtn.addEventListener("click",()=>speak(1));
-slowBtn.addEventListener("click",()=>speak(.78));
-stopBtn.addEventListener("click",()=>{
-  stopped=true; runToken++; speechSynthesis.cancel(); statusEl.textContent="Gestoppt.";
-});
-
-normalBtn.disabled=slowBtn.disabled=true;
-chooseVoice();
-speechSynthesis.onvoiceschanged=chooseVoice;
-setTimeout(chooseVoice,300);
-setTimeout(chooseVoice,1000);
-</script>
-</body>
-</html>
+play.onclick=()=>{snapshot=textEl.value;chunks=split(snapshot);if(!chunks.length){status.textContent="Bitte zuerst einen französischen Text eingeben.";return}rate=speed();index=0;hasProgress=true;speakFrom(0)};
+stop.onclick=()=>{if(!playing)return;playing=false;token++;speechSynthesis.cancel();hasProgress=true;status.textContent=`Gestoppt nach Abschnitt ${Math.min(index+1,chunks.length)}. Du kannst weiterfahren oder von vorne beginnen.`;setButtons()};
+resume.onclick=()=>{if(textEl.value!==snapshot){status.textContent="Der Text wurde verändert. Bitte starte von vorne.";hasProgress=false;setButtons();return}rate=speed();speakFrom(index)};
+restart.onclick=()=>{if(textEl.value!==snapshot){snapshot=textEl.value;chunks=split(snapshot)}rate=speed();index=0;hasProgress=chunks.length>0;speakFrom(0)};
+textEl.addEventListener("input",()=>{if(hasProgress&&!playing){hasProgress=false;resume.disabled=true;restart.disabled=true;status.textContent="Text geändert – bereit für einen neuen Start."}});
+stop.disabled=true;play.disabled=true;choose();speechSynthesis.onvoiceschanged=choose;setTimeout(choose,400);setTimeout(choose,1000);
+</script></body></html>
