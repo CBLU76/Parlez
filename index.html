@@ -1,10 +1,199 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Parlez! V7.1</title><style>body{font-family:system-ui;background:#f6f7fb;color:#172033;margin:0}main,header{max-width:850px;margin:auto;padding:20px}.card{background:white;padding:24px;border-radius:18px;margin:18px 0}.target{font-size:32px;font-weight:800;text-align:center}button{padding:12px 16px;border:0;border-radius:10px;font-weight:700}.primary{background:#4f46e5;color:white}.muted{color:#667085}.hidden{display:none}.bad{background:#ffedd5;color:#9a3412;padding:6px;border-radius:7px}.word{padding:6px;display:inline-block;margin:2px}textarea,input{width:100%;box-sizing:border-box;padding:10px;margin:5px 0 10px}</style></head><body><header><h2>🇫🇷 Parlez! V7.1 Browser</h2></header><main><div class="card"><div id="target" class="target">Ma sœur habite à Paris.</div><p style="text-align:center" class="muted">Die Erkennung läuft direkt im Browser.</p><p style="text-align:center"><button id="prepare" class="primary">1. Spracherkennung vorbereiten</button> <button id="rec" disabled>🎙️ 2. Sprechen</button> <button id="stop" disabled>⏹ Prüfen</button></p><p id="status" class="muted" style="text-align:center">Beim ersten Mal wird das kostenlose Whisper-Modell geladen.</p><div id="fb" class="hidden" style="text-align:center"><h2 id="verdict"></h2><div id="words"></div><details><summary>Erkannter Text</summary><p id="heard"></p></details></div></div><div class="card"><b>Test-Satz ändern</b><textarea id="edit">Ma sœur habite à Paris.</textarea><button id="use">Übernehmen</button></div></main>
-<script type="module">import{pipeline}from"https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";const $=x=>document.getElementById(x);let asr,ctx,stream,src,proc,chunks=[];
-$("use").onclick=()=>{$("target").textContent=$("edit").value};
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parlez! V8</title>
+<style>
+:root{--ink:#172033;--muted:#667085;--bg:#f4f6fb;--card:#fff;--p:#4f46e5;--ok:#16803a;--warn:#b45309;--line:#e5e7eb}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#fff;border-bottom:1px solid var(--line)} header .in,main{max-width:980px;margin:auto;padding:18px}
+.brand{font-size:24px;font-weight:850}.sub{color:var(--muted);font-size:14px}.tabs{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+button,.btn{border:0;border-radius:11px;padding:11px 15px;font-weight:750;cursor:pointer;font:inherit;font-weight:750}
+.primary{background:var(--p);color:#fff}.soft{background:#eef2ff;color:#3730a3}.ghost{background:#eef0f4;color:#344054}.danger{background:#fff1f2;color:#be123c}
+button:disabled{opacity:.45;cursor:not-allowed}.tab.active{background:var(--p);color:#fff}
+.card{background:var(--card);border-radius:20px;padding:22px;margin:18px 0;box-shadow:0 1px 2px #00000008}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:720px){.grid{grid-template-columns:1fr}}
+input,textarea,select{width:100%;padding:11px;border:1px solid #cfd4dc;border-radius:10px;font:inherit;margin:6px 0 12px}
+textarea{min-height:88px}.hidden{display:none!important}.target{font-size:31px;font-weight:850;text-align:center;line-height:1.3;margin:18px 0}
+.center{text-align:center}.muted{color:var(--muted)}.small{font-size:13px}.pill{display:inline-block;background:#eef2ff;color:#3730a3;padding:5px 9px;border-radius:999px;font-size:13px;font-weight:700}
+.progress{height:9px;background:#eceef3;border-radius:99px;overflow:hidden}.progress>div{height:100%;background:var(--p)}
+.word{display:inline-block;padding:5px 4px;margin:1px}.bad{background:#ffedd5;color:#9a3412;border-radius:7px}
+.okbox{background:#ecfdf3;color:#166534;padding:14px;border-radius:13px}.warnbox{background:#fff7ed;color:#9a3412;padding:14px;border-radius:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
+hr{border:0;border-top:1px solid var(--line);margin:18px 0}.setrow,.sentrow{border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.stat{font-size:28px;font-weight:850}.kpi{background:#f8fafc;border-radius:14px;padding:15px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}
+audio{width:100%;margin:8px 0}.statusdot{font-weight:800}.green{color:var(--ok)}.orange{color:var(--warn)}
+</style>
+</head>
+<body>
+<header><div class="in"><div class="brand">🇫🇷 Parlez!</div><div class="sub">Französisch sprechen, hören, nochmals versuchen.</div>
+<div class="tabs"><button class="tab active" data-view="student">Üben</button><button class="tab" data-view="teacher">LP-Bereich</button></div></div></header>
+<main>
+<section id="student">
+  <div id="studentStart" class="card">
+    <h2>Übung starten</h2>
+    <div class="grid"><label>Schülercode<input id="studentCode" placeholder="z. B. A17" maxlength="12"></label>
+    <label>Übungsset<select id="setSelect"></select></label></div>
+    <button id="startPractice" class="primary">Starten</button>
+    <p class="small muted">Die Aufnahme wird nur für die Erkennung im Browser verwendet und nicht dauerhaft gespeichert.</p>
+  </div>
+
+  <div id="practice" class="hidden">
+    <div class="card">
+      <div class="row between"><span id="setName" class="pill"></span><span id="counter" class="muted"></span></div>
+      <div class="progress"><div id="bar"></div></div>
+      <div id="target" class="target"></div>
+      <div class="center">
+        <button id="playRef" class="soft">🔊 Referenz anhören</button>
+        <button id="prepare" class="ghost">Spracherkennung vorbereiten</button>
+      </div>
+      <p id="status" class="center muted">Bereit zum Üben.</p>
+      <div class="center row" style="justify-content:center">
+        <button id="rec" class="primary" disabled>🎙️ Sprechen</button>
+        <button id="stop" class="ghost" disabled>⏹ Prüfen</button>
+      </div>
+      <div id="feedback" class="hidden center" style="margin-top:18px">
+        <h2 id="verdict"></h2><div id="words"></div>
+        <p id="attemptHint" class="muted"></p>
+        <div class="row" style="justify-content:center;margin-top:12px">
+          <button id="retry" class="soft">Noch einmal</button><button id="next" class="primary hidden">Weiter</button>
+        </div>
+        <details style="margin-top:14px"><summary>Erkannter Text</summary><p id="heard"></p></details>
+      </div>
+    </div>
+  </div>
+
+  <div id="done" class="card hidden center"><h2>🎉 Geschafft!</h2><p>Du hast dieses Set vollständig geübt.</p><p id="doneStats"></p><button id="again" class="primary">Noch ein Set üben</button></div>
+</section>
+
+<section id="teacher" class="hidden">
+ <div class="card">
+  <h2>LP-Bereich</h2><p class="muted">Übungssets und Referenzaufnahmen werden in diesem Browser gespeichert.</p>
+  <div class="grid">
+   <div><h3>Neues Set</h3><input id="newSetName" placeholder="z. B. Unité 3"><button id="addSet" class="primary">Set erstellen</button></div>
+   <div><h3>Satz hinzufügen</h3><select id="teacherSet"></select><textarea id="newSentence" placeholder="Französischer Satz"></textarea><button id="addSentence" class="primary">Satz hinzufügen</button></div>
+  </div>
+ </div>
+ <div class="card"><h2>Sets & Referenzaussprache</h2><div id="setEditor"></div></div>
+ <div class="card"><h2>Übungsaktivität</h2>
+   <div class="grid"><div class="kpi"><div id="kpiStudents" class="stat">0</div><div class="muted">Schülercodes</div></div><div class="kpi"><div id="kpiAttempts" class="stat">0</div><div class="muted">Sprechversuche</div></div></div>
+   <div style="overflow:auto;margin-top:14px"><table><thead><tr><th>Code</th><th>Set</th><th>geübt</th><th>Versuche</th><th>Letzte Aktivität</th></tr></thead><tbody id="activityRows"></tbody></table></div>
+ </div>
+</section>
+</main>
+
+<script type="module">
+import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+const $=id=>document.getElementById(id);
+const KEY="parlez-v8-data";
+let data=JSON.parse(localStorage.getItem(KEY)||"null")||{
+ sets:[
+  {id:"basis",name:"Basis",sentences:[
+   {id:"s1",text:"Ma sœur habite à Paris.",audio:null},
+   {id:"s2",text:"Je voudrais un croissant.",audio:null},
+   {id:"s3",text:"Nous allons à l'école demain.",audio:null},
+   {id:"s4",text:"Un enfant mange du pain.",audio:null}
+  ]}
+ ], activity:[]
+};
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(data));renderAll()};
+let asr=null,ctx=null,stream=null,src=null,proc=null,chunks=[];
+let session=null, teacherRecording=null;
+
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+ ["student","teacher"].forEach(v=>$(v).classList.toggle("hidden",v!==b.dataset.view)); if(b.dataset.view==="teacher") renderTeacher();
+});
 function norm(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/œ/g,"oe").replace(/[’'-]/g," ").replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim()}
 function lev(a,b){let d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let n=[i];for(let j=1;j<=b.length;j++)n[j]=Math.min(n[j-1]+1,d[j]+1,d[j-1]+(a[i-1]==b[j-1]?0:1));d=n}return d[b.length]}
-function assess(t,h){let a=norm(t).split(" "),b=norm(h).split(" "),used=new Set(),bad=[];a.forEach((w,i)=>{let z=[99,-1];b.forEach((x,j)=>{if(used.has(j))return;let d=lev(w,x)/Math.max(w.length,x.length);if(d<z[0])z=[d,j]});if(z[1]>=0&&z[0]<=(w.length<4?.4:.3))used.add(z[1]);else bad.push(i)});return{a,bad,good:bad.length<=Math.max(1,Math.floor(a.length*.18))}}
-$("prepare").onclick=async()=>{try{$("prepare").disabled=true;$("status").textContent="⏳ Whisper wird in den Browser geladen …";asr=await pipeline("automatic-speech-recognition","Xenova/whisper-tiny",{dtype:"fp32",device:"wasm",progress_callback:x=>{if(x.status==="progress"&&x.progress)$("status").textContent="⏳ Laden: "+Math.round(x.progress)+" %"}});$("status").textContent="✓ Bereit.";$("rec").disabled=false}catch(e){$("prepare").disabled=false;$("status").textContent="Laden fehlgeschlagen: "+e.message}}
-$("rec").onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({audio:true});ctx=new AudioContext({sampleRate:16000});src=ctx.createMediaStreamSource(stream);proc=ctx.createScriptProcessor(4096,1,1);chunks=[];proc.onaudioprocess=e=>chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));src.connect(proc);proc.connect(ctx.destination);$("rec").disabled=true;$("stop").disabled=false;$("status").textContent="🎙️ Aufnahme läuft …"}catch(e){$("status").textContent="Mikrofon: "+e.message}}
-$("stop").onclick=async()=>{$("stop").disabled=true;proc.disconnect();src.disconnect();stream.getTracks().forEach(t=>t.stop());await ctx.close();let n=chunks.reduce((s,a)=>s+a.length,0),audio=new Float32Array(n),o=0;for(let a of chunks){audio.set(a,o);o+=a.length}$("status").textContent="⏳ Erkenne Französisch …";try{let out=await asr(audio,{language:"fr",task:"transcribe"}),h=out.text||"",r=assess($("target").textContent,h);$("fb").classList.remove("hidden");$("heard").textContent=h||"—";$("verdict").textContent=r.good?"🟢 Gut!":"🟠 Versuch es noch einmal.";$("words").innerHTML=r.a.map((w,i)=>`<span class="word ${r.bad.includes(i)?"bad":""}">${w}</span>`).join("");$("status").textContent="Analyse abgeschlossen."}catch(e){$("status").textContent="Analysefehler: "+e.message}finally{$("rec").disabled=false}}
-</script></body></html>
+const functionWords=new Set("je tu il elle on nous vous ils elles le la les un une des du de d au aux a et en y ne pas que qui se me te mon ma mes ton ta tes son sa ses ce cet cette ces".split(" "));
+function assess(t,h){
+ let a=norm(t).split(" ").filter(Boolean),b=norm(h).split(" ").filter(Boolean),used=new Set(),bad=[];
+ a.forEach((w,i)=>{let z=[99,-1];b.forEach((x,j)=>{if(used.has(j))return;let d=lev(w,x)/Math.max(w.length,x.length);if(d<z[0])z=[d,j]});
+   let tol=functionWords.has(w)?.55:(w.length<4?.42:.32); if(z[1]>=0&&z[0]<=tol)used.add(z[1]); else if(!functionWords.has(w))bad.push(i);
+ });
+ let allowed=Math.max(0,Math.floor(a.filter(w=>!functionWords.has(w)).length*.18));
+ return {a,bad,good:bad.length<=allowed};
+}
+function renderAll(){
+ $("setSelect").innerHTML=data.sets.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");
+ $("teacherSet").innerHTML=$("setSelect").innerHTML; renderTeacher();
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function renderTeacher(){
+ if(!$("teacher"))return;
+ $("setEditor").innerHTML=data.sets.map(set=>`<div class="setrow"><div class="row between"><h3>${esc(set.name)}</h3><button class="danger" data-delset="${set.id}">Set löschen</button></div>
+ ${set.sentences.map(s=>`<div class="sentrow"><b>${esc(s.text)}</b><div class="small ${s.audio?'green':'orange'} statusdot">${s.audio?'✓ Referenz freigegeben':'● Noch keine Referenz'}</div>
+ <div class="row" style="margin-top:8px">${s.audio?`<button class="soft" data-play="${s.id}">▶ Anhören</button>`:""}<button class="ghost" data-record="${s.id}">🎙️ ${s.audio?'Neu aufnehmen':'Referenz aufnehmen'}</button><button class="danger" data-delsent="${s.id}">Satz löschen</button></div></div>`).join("")}</div>`).join("");
+ document.querySelectorAll("[data-delset]").forEach(b=>b.onclick=()=>{if(confirm("Set wirklich löschen?")){data.sets=data.sets.filter(s=>s.id!==b.dataset.delset);save()}});
+ document.querySelectorAll("[data-delsent]").forEach(b=>b.onclick=()=>{data.sets.forEach(s=>s.sentences=s.sentences.filter(x=>x.id!==b.dataset.delsent));save()});
+ document.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>playAudio(findSentence(b.dataset.play).audio));
+ document.querySelectorAll("[data-record]").forEach(b=>b.onclick=()=>recordReference(b.dataset.record,b));
+ const codes=[...new Set(data.activity.map(a=>a.code))]; $("kpiStudents").textContent=codes.length;
+ $("kpiAttempts").textContent=data.activity.reduce((n,a)=>n+a.attempts,0);
+ $("activityRows").innerHTML=data.activity.slice().reverse().map(a=>`<tr><td>${esc(a.code)}</td><td>${esc(a.set)}</td><td>${a.practiced}</td><td>${a.attempts}</td><td>${new Date(a.when).toLocaleString("de-CH")}</td></tr>`).join("");
+}
+function findSentence(id){for(const s of data.sets){let x=s.sentences.find(q=>q.id===id);if(x)return x}}
+function playAudio(src){if(!src){alert("Für diesen Satz wurde noch keine Referenzaussprache freigegeben.");return} new Audio(src).play()}
+async function recordReference(id,button){
+ if(teacherRecording){alert("Es läuft bereits eine Aufnahme.");return}
+ try{
+  let st=await navigator.mediaDevices.getUserMedia({audio:true}), mr=new MediaRecorder(st), parts=[]; teacherRecording=mr;
+  mr.ondataavailable=e=>parts.push(e.data); mr.onstop=()=>{st.getTracks().forEach(t=>t.stop());teacherRecording=null;let blob=new Blob(parts,{type:mr.mimeType});let r=new FileReader();r.onload=()=>{findSentence(id).audio=r.result;save();alert("Referenzaufnahme gespeichert und freigegeben.")};r.readAsDataURL(blob)};
+  mr.start(); button.textContent="⏹ Aufnahme stoppen"; button.onclick=()=>mr.stop();
+ }catch(e){teacherRecording=null;alert("Mikrofon konnte nicht geöffnet werden: "+e.message)}
+}
+$("addSet").onclick=()=>{let n=$("newSetName").value.trim();if(!n)return;data.sets.push({id:crypto.randomUUID(),name:n,sentences:[]});$("newSetName").value="";save()};
+$("addSentence").onclick=()=>{let set=data.sets.find(s=>s.id===$("teacherSet").value),t=$("newSentence").value.trim();if(!set||!t)return;set.sentences.push({id:crypto.randomUUID(),text:t,audio:null});$("newSentence").value="";save()};
+
+$("startPractice").onclick=()=>{
+ let code=$("studentCode").value.trim(),set=data.sets.find(s=>s.id===$("setSelect").value); if(!code){alert("Bitte Schülercode eingeben.");return} if(!set||!set.sentences.length){alert("Dieses Set enthält noch keine Sätze.");return}
+ session={code,set,queue:set.sentences.map(x=>({id:x.id,requeues:0})),index:0,attempts:0,practiced:0,currentAttempts:0};
+ $("studentStart").classList.add("hidden");$("done").classList.add("hidden");$("practice").classList.remove("hidden");showCurrent();
+};
+function current(){return findSentence(session.queue[session.index].id)}
+function showCurrent(){
+ let s=current();session.currentAttempts=0;$("target").textContent=s.text;$("setName").textContent=session.set.name;
+ $("counter").textContent=`${session.index+1} / ${session.queue.length}`;$("bar").style.width=((session.index/session.queue.length)*100)+"%";
+ $("feedback").classList.add("hidden");$("next").classList.add("hidden");$("retry").classList.remove("hidden");$("status").textContent="Bereit zum Üben.";
+ $("playRef").disabled=!s.audio;
+}
+$("playRef").onclick=()=>playAudio(current().audio);
+$("prepare").onclick=async()=>{
+ try{$("prepare").disabled=true;$("status").textContent="⏳ Whisper wird geladen …";
+ asr=await pipeline("automatic-speech-recognition","Xenova/whisper-tiny",{dtype:"fp32",device:"wasm",progress_callback:x=>{if(x.status==="progress"&&x.progress)$("status").textContent="⏳ Laden: "+Math.round(x.progress)+" %"}});
+ $("status").textContent="✓ Spracherkennung bereit.";$("rec").disabled=false;$("prepare").textContent="✓ Bereit";
+ }catch(e){$("prepare").disabled=false;$("status").textContent="Laden fehlgeschlagen: "+e.message}
+};
+$("rec").onclick=async()=>{
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:true});ctx=new AudioContext({sampleRate:16000});src=ctx.createMediaStreamSource(stream);proc=ctx.createScriptProcessor(4096,1,1);chunks=[];
+ proc.onaudioprocess=e=>chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));src.connect(proc);proc.connect(ctx.destination);$("rec").disabled=true;$("stop").disabled=false;$("feedback").classList.add("hidden");$("status").textContent="🎙️ Aufnahme läuft …";
+ }catch(e){$("status").textContent="Mikrofon: "+e.message}
+};
+$("stop").onclick=async()=>{
+ $("stop").disabled=true;proc.disconnect();src.disconnect();stream.getTracks().forEach(t=>t.stop());await ctx.close();let n=chunks.reduce((s,a)=>s+a.length,0),audio=new Float32Array(n),o=0;for(let a of chunks){audio.set(a,o);o+=a.length}
+ $("status").textContent="⏳ Französisch wird erkannt …";session.attempts++;session.currentAttempts++;
+ try{let out=await asr(audio,{language:"fr",task:"transcribe"}),h=out.text||"",r=assess(current().text,h);$("feedback").classList.remove("hidden");$("heard").textContent=h||"—";
+ $("verdict").textContent=r.good?"🟢 Gut!":"🟠 Versuch es noch einmal.";$("words").innerHTML=r.a.map((w,i)=>`<span class="word ${r.bad.includes(i)?"bad":""}">${esc(w)}</span>`).join("");
+ if(r.good){$("retry").classList.add("hidden");$("next").classList.remove("hidden");$("attemptHint").textContent="";}else{
+  $("attemptHint").textContent=session.currentAttempts>=3?"Du hast es dreimal versucht. Du kannst weitergehen; der Satz kommt später nochmals.":"Hör die Referenz nochmals an und versuche es erneut.";
+  $("next").classList.toggle("hidden",session.currentAttempts<3);
+ }
+ $("status").textContent="Analyse abgeschlossen.";
+ }catch(e){$("status").textContent="Analysefehler: "+e.message}finally{$("rec").disabled=false}
+};
+$("retry").onclick=()=>{$("feedback").classList.add("hidden");$("status").textContent="Bereit für den nächsten Versuch."};
+$("next").onclick=()=>{
+ let good=$("verdict").textContent.includes("Gut"),item=session.queue[session.index];session.practiced++;
+ if(!good && item.requeues<2)session.queue.push({id:item.id,requeues:item.requeues+1});
+ session.index++; if(session.index>=session.queue.length)return finish(); showCurrent();
+};
+function finish(){
+ $("practice").classList.add("hidden");$("done").classList.remove("hidden");$("doneStats").textContent=`${session.practiced} Übungen · ${session.attempts} Sprechversuche`;
+ data.activity.push({code:session.code,set:session.set.name,practiced:session.practiced,attempts:session.attempts,when:Date.now()});save();
+}
+$("again").onclick=()=>{$("done").classList.add("hidden");$("studentStart").classList.remove("hidden")};
+renderAll();
+</script>
+</body></html>
