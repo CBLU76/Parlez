@@ -1,1 +1,6 @@
-Parlez! V7 Browser\n\nKeine Python-Installation. Whisper läuft mit Transformers.js direkt im Browser. Für Mikrofonzugriff die index.html als HTTPS-Website veröffentlichen. Beim ersten Aufruf wird das kostenlose Whisper-Modell geladen und danach typischerweise im Browser-Cache gehalten. Die Version nutzt WASM für bessere Browser-Kompatibilität.\n
+Parlez – fertige Schüler-Version
+Optischer Feinschliff auf Basis der funktionierenden V3.
+Die TTS-Einstellungen bleiben unverändert:
+Google français (fr-FR), Normal 0.90, Langsam 0.72.
+Funktionen: Anhören, Stoppen, Weiter, Von vorne, direkter Satzwechsel.
+Für GitHub Pages einfach index.html ersetzen.
