@@ -1,29 +1,16 @@
-<!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Parlez! – Piper Französisch-Test</title>
-<style>
-:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f4f6fb}body{margin:0}.wrap{max-width:850px;margin:38px auto;padding:18px}.card{background:white;border-radius:22px;padding:26px;box-shadow:0 2px 10px #00000010}h1{margin:0 0 8px}p{line-height:1.45}.muted{color:#667085}textarea,select{width:100%;box-sizing:border-box;border:1px solid #cfd4dc;border-radius:12px;padding:12px;font:inherit}textarea{min-height:115px;resize:vertical}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}button{border:0;border-radius:11px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer;margin:12px 7px 0 0}.primary{background:#4f46e5;color:white}.soft{background:#eef2ff;color:#3730a3}button:disabled{opacity:.45;cursor:default}#status{padding:12px;background:#f8fafc;border-radius:12px;margin-top:16px}.samples button{font-weight:600;margin-top:7px}@media(max-width:650px){.grid{grid-template-columns:1fr}}
-</style></head><body><div class="wrap"><div class="card">
-<h1>🇫🇷 Parlez! – Piper-Hörtest</h1>
-<p class="muted">Open-Source-TTS direkt im Browser. Keine Anmeldung, keine Kreditkarte, kein API-Schlüssel.</p>
-<label><b>Beliebiger französischer Text</b></label><textarea id="text">Ma sœur habite à Paris.</textarea>
-<div class="grid"><div><label><b>Stimme</b></label><select id="voice">
-<option value="fr_FR-siwis-medium">Siwis – fr_FR</option><option value="fr_FR-tom-medium">Tom – fr_FR</option><option value="fr_FR-mls-medium">MLS – fr_FR</option><option value="fr_FR-upmc-medium">UPMC – fr_FR</option>
-</select></div><div><label><b>Wiedergabetempo</b></label><select id="speed"><option value="1">Normal</option><option value="0.85" selected>Langsam</option><option value="0.72">Sehr langsam</option></select></div></div>
-<button class="primary" id="make">▶ Erzeugen & anhören</button><button class="soft" id="again" disabled>↻ Noch einmal anhören</button>
-<div id="status">Piper wird vorbereitet …</div><hr style="border:0;border-top:1px solid #e5e7eb;margin:24px 0">
-<b>Beispiele – oben kannst du jeden beliebigen Satz eingeben:</b><div class="samples">
-<button class="soft">Ma sœur habite à Paris.</button><button class="soft">La cuisine est au rez-de-chaussée à gauche.</button><button class="soft">Les enfants vont à l'école à huit heures et demie.</button><button class="soft">Vous avez un peu de pain et du fromage ?</button></div>
-<p class="muted"><small>Beim ersten Einsatz einer Stimme wird ihr Modell heruntergeladen. Das kann etwas dauern. Danach speichert der Browser das Modell lokal zwischen.</small></p>
-</div></div>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Parlez! Piper-Test v2</title>
+<style>body{margin:0;background:#f4f6fb;color:#10203c;font-family:system-ui,-apple-system,Segoe UI,sans-serif}.w{max-width:850px;margin:35px auto;padding:18px}.c{background:#fff;border-radius:22px;padding:27px;box-shadow:0 2px 12px #0001}h1{margin-top:0}textarea,select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccd2dc;border-radius:12px;font:inherit}textarea{min-height:110px}.g{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}button{padding:12px 16px;border:0;border-radius:11px;font:inherit;font-weight:750;cursor:pointer;margin:12px 7px 0 0}.p{background:#5046e5;color:white}.s{background:#eef2ff;color:#3730a3}button:disabled{opacity:.45}.st{margin-top:16px;padding:12px;border-radius:12px;background:#f8fafc}.muted{color:#667085}@media(max-width:650px){.g{grid-template-columns:1fr}}</style></head>
+<body><div class="w"><div class="c"><h1>🇫🇷 Parlez! – Piper-Hörtest v2</h1><p class="muted">Open-Source-TTS im Browser. Diese Version verwendet die neuere Piper-Webbibliothek mit reparierten WASM/CDN-Pfaden.</p>
+<label><b>Beliebiger französischer Text</b></label><textarea id="t">Ma sœur habite à Paris.</textarea>
+<div class="g"><div><label><b>Stimme</b></label><select id="v"><option value="fr_FR-siwis-medium">Siwis – fr_FR</option><option value="fr_FR-tom-medium">Tom – fr_FR</option><option value="fr_FR-mls-medium">MLS – fr_FR</option><option value="fr_FR-upmc-medium">UPMC – fr_FR</option></select></div><div><label><b>Tempo</b></label><select id="r"><option value="1">Normal</option><option value=".85" selected>Langsam</option><option value=".72">Sehr langsam</option></select></div></div>
+<button id="go" class="p">▶ Erzeugen & anhören</button><button id="re" class="s" disabled>↻ Noch einmal</button><div id="st" class="st">Bibliothek wird geladen …</div>
+<p class="muted"><small>Beim ersten Einsatz wird das jeweilige Sprachmodell heruntergeladen und im Browser zwischengespeichert.</small></p></div></div>
 <script type="module">
-const status=document.querySelector('#status'),make=document.querySelector('#make'),again=document.querySelector('#again');let lastUrl=null,tts;
-try{tts=await import("https://esm.sh/@mintplex-labs/piper-tts-web?bundle");status.textContent="✓ Piper bereit. Text eingeben und starten."}
-catch(e){status.textContent="❌ Piper-Webmodul konnte nicht geladen werden: "+e.message;make.disabled=true}
-async function playLast(){if(!lastUrl)return;const a=new Audio(lastUrl);a.playbackRate=Number(document.querySelector('#speed').value);await a.play()}
-make.onclick=async()=>{const text=document.querySelector('#text').value.trim(),voiceId=document.querySelector('#voice').value;if(!text)return;make.disabled=true;again.disabled=true;
-try{status.textContent="⏳ Stimme wird vorbereitet …";const wav=await tts.predict({text,voiceId},p=>{if(p?.total&&p?.loaded)status.textContent=`⏳ Modell wird geladen: ${Math.round(p.loaded*100/p.total)}%`;else status.textContent="⏳ Aussprache wird erzeugt …"});
-if(lastUrl)URL.revokeObjectURL(lastUrl);lastUrl=URL.createObjectURL(wav);status.textContent="✓ Fertig. Bitte Aussprache und Natürlichkeit beurteilen.";again.disabled=false;await playLast()}
-catch(e){status.textContent="❌ Erzeugung fehlgeschlagen: "+e.message}finally{make.disabled=false}};
-again.onclick=playLast;document.querySelectorAll('.samples button').forEach(b=>b.onclick=()=>document.querySelector('#text').value=b.textContent);
+const st=document.querySelector("#st"),go=document.querySelector("#go"),re=document.querySelector("#re");let lib,last;
+try{lib=await import("https://esm.sh/@realtimex/piper-tts-web@1.1.1?bundle");st.textContent="✓ Piper v2 bereit."}catch(e){st.textContent="❌ Modul konnte nicht geladen werden: "+e.message;go.disabled=true}
+async function play(){if(!last)return;let a=new Audio(last);a.playbackRate=+document.querySelector("#r").value;await a.play()}
+go.onclick=async()=>{let text=document.querySelector("#t").value.trim(),voiceId=document.querySelector("#v").value;if(!text)return;go.disabled=true;re.disabled=true;try{st.textContent="⏳ Modell/Aussprache wird vorbereitet …";
+let wav=await lib.predict({text,voiceId},p=>{if(p?.total&&p?.loaded)st.textContent="⏳ Laden: "+Math.round(p.loaded*100/p.total)+" %";});
+if(last)URL.revokeObjectURL(last);last=URL.createObjectURL(wav);st.textContent="✓ Fertig – bitte anhören.";re.disabled=false;await play()}catch(e){st.textContent="❌ Fehler: "+e.message}finally{go.disabled=false}};
+re.onclick=play;
 </script></body></html>
