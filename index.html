@@ -1,58 +1,29 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Parlez! – KI-Aussprachetest</title>
+<title>Parlez! – Piper Französisch-Test</title>
 <style>
-body{margin:0;background:#f4f6fb;color:#172033;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-main{max-width:820px;margin:40px auto;padding:18px}.card{background:#fff;border-radius:22px;padding:26px;box-shadow:0 1px 3px #0001}
-h1{margin-top:0}textarea{width:100%;min-height:100px;padding:13px;border:1px solid #cfd4dc;border-radius:12px;font:inherit;box-sizing:border-box}
-button{border:0;border-radius:11px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer;margin:10px 7px 0 0}
-.primary{background:#4f46e5;color:#fff}.soft{background:#eef2ff;color:#3730a3}button:disabled{opacity:.45}
-#status{color:#667085}.sample{background:#f8fafc;padding:10px 12px;border-radius:10px;margin:8px 0;cursor:pointer}
-small{color:#667085}
-</style></head><body><main><div class="card">
-<h1>🇫🇷 Parlez! – KI-Aussprachetest</h1>
-<p>Hier testen wir eine kostenlose französische KI-Stimme direkt im Browser – ohne Azure, Kreditkarte oder API-Schlüssel.</p>
-<label><b>Französischer Satz</b></label>
-<textarea id="text">Ma sœur habite à Paris.</textarea>
-<button id="load" class="primary">1. KI-Stimme vorbereiten</button>
-<button id="make" class="primary" disabled>2. Aussprache erzeugen</button>
-<button id="play" class="soft" disabled>▶ Anhören</button>
-<p id="status">Noch nicht geladen.</p>
-<hr style="border:0;border-top:1px solid #e5e7eb;margin:22px 0">
-<b>Testsätze</b>
-<div class="sample">Ma sœur habite à Paris.</div>
-<div class="sample">Je voudrais un croissant, s'il vous plaît.</div>
-<div class="sample">Un enfant mange du pain.</div>
-<div class="sample">La cuisine est au rez-de-chaussée à gauche.</div>
-<p><small>Beim ersten Start wird das französische Sprachmodell aus dem Internet geladen. Danach kann es vom Browser zwischengespeichert werden.</small></p>
-</div></main>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f4f6fb}body{margin:0}.wrap{max-width:850px;margin:38px auto;padding:18px}.card{background:white;border-radius:22px;padding:26px;box-shadow:0 2px 10px #00000010}h1{margin:0 0 8px}p{line-height:1.45}.muted{color:#667085}textarea,select{width:100%;box-sizing:border-box;border:1px solid #cfd4dc;border-radius:12px;padding:12px;font:inherit}textarea{min-height:115px;resize:vertical}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}button{border:0;border-radius:11px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer;margin:12px 7px 0 0}.primary{background:#4f46e5;color:white}.soft{background:#eef2ff;color:#3730a3}button:disabled{opacity:.45;cursor:default}#status{padding:12px;background:#f8fafc;border-radius:12px;margin-top:16px}.samples button{font-weight:600;margin-top:7px}@media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style></head><body><div class="wrap"><div class="card">
+<h1>🇫🇷 Parlez! – Piper-Hörtest</h1>
+<p class="muted">Open-Source-TTS direkt im Browser. Keine Anmeldung, keine Kreditkarte, kein API-Schlüssel.</p>
+<label><b>Beliebiger französischer Text</b></label><textarea id="text">Ma sœur habite à Paris.</textarea>
+<div class="grid"><div><label><b>Stimme</b></label><select id="voice">
+<option value="fr_FR-siwis-medium">Siwis – fr_FR</option><option value="fr_FR-tom-medium">Tom – fr_FR</option><option value="fr_FR-mls-medium">MLS – fr_FR</option><option value="fr_FR-upmc-medium">UPMC – fr_FR</option>
+</select></div><div><label><b>Wiedergabetempo</b></label><select id="speed"><option value="1">Normal</option><option value="0.85" selected>Langsam</option><option value="0.72">Sehr langsam</option></select></div></div>
+<button class="primary" id="make">▶ Erzeugen & anhören</button><button class="soft" id="again" disabled>↻ Noch einmal anhören</button>
+<div id="status">Piper wird vorbereitet …</div><hr style="border:0;border-top:1px solid #e5e7eb;margin:24px 0">
+<b>Beispiele – oben kannst du jeden beliebigen Satz eingeben:</b><div class="samples">
+<button class="soft">Ma sœur habite à Paris.</button><button class="soft">La cuisine est au rez-de-chaussée à gauche.</button><button class="soft">Les enfants vont à l'école à huit heures et demie.</button><button class="soft">Vous avez un peu de pain et du fromage ?</button></div>
+<p class="muted"><small>Beim ersten Einsatz einer Stimme wird ihr Modell heruntergeladen. Das kann etwas dauern. Danach speichert der Browser das Modell lokal zwischen.</small></p>
+</div></div>
 <script type="module">
-import { pipeline } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2";
-const $=x=>document.getElementById(x);
-let synth=null, url=null;
-function wavBlob(samples,rate){
- const n=samples.length,buf=new ArrayBuffer(44+n*2),v=new DataView(buf);
- const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
- w(0,"RIFF");v.setUint32(4,36+n*2,true);w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);
- v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);
- v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,n*2,true);
- let o=44;for(let i=0;i<n;i++,o+=2){let x=Math.max(-1,Math.min(1,samples[i]));v.setInt16(o,x<0?x*32768:x*32767,true)}
- return new Blob([buf],{type:"audio/wav"});
-}
-$("load").onclick=async()=>{
- try{$("load").disabled=true;$("status").textContent="⏳ Französische KI-Stimme wird geladen …";
- synth=await pipeline("text-to-speech","Xenova/mms-tts-fra",{quantized:false,
-  progress_callback:p=>{if(p.status==="progress"&&p.progress)$("status").textContent="⏳ Laden: "+Math.round(p.progress)+" %"}});
- $("status").textContent="✓ KI-Stimme bereit.";$("make").disabled=false;$("load").textContent="✓ Bereit";
- }catch(e){$("load").disabled=false;$("status").textContent="Laden fehlgeschlagen: "+e.message}
-};
-$("make").onclick=async()=>{
- let t=$("text").value.trim();if(!t)return;
- try{$("make").disabled=true;$("play").disabled=true;$("status").textContent="⏳ Aussprache wird erzeugt …";
- let out=await synth(t);let blob=wavBlob(out.audio,out.sampling_rate);if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(blob);
- $("play").disabled=false;$("status").textContent="✓ Fertig. Jetzt anhören und die Aussprache beurteilen.";
- }catch(e){$("status").textContent="Erzeugung fehlgeschlagen: "+e.message}finally{$("make").disabled=false}
-};
-$("play").onclick=()=>{if(url)new Audio(url).play()};
-document.querySelectorAll(".sample").forEach(x=>x.onclick=()=>{$("text").value=x.textContent});
+const status=document.querySelector('#status'),make=document.querySelector('#make'),again=document.querySelector('#again');let lastUrl=null,tts;
+try{tts=await import("https://esm.sh/@mintplex-labs/piper-tts-web?bundle");status.textContent="✓ Piper bereit. Text eingeben und starten."}
+catch(e){status.textContent="❌ Piper-Webmodul konnte nicht geladen werden: "+e.message;make.disabled=true}
+async function playLast(){if(!lastUrl)return;const a=new Audio(lastUrl);a.playbackRate=Number(document.querySelector('#speed').value);await a.play()}
+make.onclick=async()=>{const text=document.querySelector('#text').value.trim(),voiceId=document.querySelector('#voice').value;if(!text)return;make.disabled=true;again.disabled=true;
+try{status.textContent="⏳ Stimme wird vorbereitet …";const wav=await tts.predict({text,voiceId},p=>{if(p?.total&&p?.loaded)status.textContent=`⏳ Modell wird geladen: ${Math.round(p.loaded*100/p.total)}%`;else status.textContent="⏳ Aussprache wird erzeugt …"});
+if(lastUrl)URL.revokeObjectURL(lastUrl);lastUrl=URL.createObjectURL(wav);status.textContent="✓ Fertig. Bitte Aussprache und Natürlichkeit beurteilen.";again.disabled=false;await playLast()}
+catch(e){status.textContent="❌ Erzeugung fehlgeschlagen: "+e.message}finally{make.disabled=false}};
+again.onclick=playLast;document.querySelectorAll('.samples button').forEach(b=>b.onclick=()=>document.querySelector('#text').value=b.textContent);
 </script></body></html>
