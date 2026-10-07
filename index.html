@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Parlez! V8</title>
+<title>Parlez! V8.1</title>
 <style>
 :root{--ink:#172033;--muted:#667085;--bg:#f4f6fb;--card:#fff;--p:#4f46e5;--ok:#16803a;--warn:#b45309;--line:#e5e7eb}
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
@@ -57,7 +57,7 @@ audio{width:100%;margin:8px 0}.statusdot{font-weight:800}.green{color:var(--ok)}
         <h2 id="verdict"></h2><div id="words"></div>
         <p id="attemptHint" class="muted"></p>
         <div class="row" style="justify-content:center;margin-top:12px">
-          <button id="retry" class="soft">Noch einmal</button><button id="next" class="primary hidden">Weiter</button>
+          <button id="listenOwn" class="ghost hidden">▶ Eigene Aufnahme anhören</button><button id="retry" class="soft">Noch einmal</button><button id="next" class="primary hidden">Weiter</button>
         </div>
         <details style="margin-top:14px"><summary>Erkannter Text</summary><p id="heard"></p></details>
       </div>
@@ -98,7 +98,7 @@ let data=JSON.parse(localStorage.getItem(KEY)||"null")||{
  ], activity:[]
 };
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(data));renderAll()};
-let asr=null,ctx=null,stream=null,src=null,proc=null,chunks=[];
+let asr=null,stream=null,mediaRecorder=null,mediaParts=[],lastStudentAudioUrl=null;
 let session=null, teacherRecording=null;
 
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
@@ -156,7 +156,7 @@ function current(){return findSentence(session.queue[session.index].id)}
 function showCurrent(){
  let s=current();session.currentAttempts=0;$("target").textContent=s.text;$("setName").textContent=session.set.name;
  $("counter").textContent=`${session.index+1} / ${session.queue.length}`;$("bar").style.width=((session.index/session.queue.length)*100)+"%";
- $("feedback").classList.add("hidden");$("next").classList.add("hidden");$("retry").classList.remove("hidden");$("status").textContent="Bereit zum Üben.";
+ $("feedback").classList.add("hidden");$("listenOwn").classList.add("hidden");$("next").classList.add("hidden");$("retry").classList.remove("hidden");$("status").textContent="Bereit zum Üben.";
  $("playRef").disabled=!s.audio;
 }
 $("playRef").onclick=()=>playAudio(current().audio);
@@ -167,22 +167,83 @@ $("prepare").onclick=async()=>{
  }catch(e){$("prepare").disabled=false;$("status").textContent="Laden fehlgeschlagen: "+e.message}
 };
 $("rec").onclick=async()=>{
- try{stream=await navigator.mediaDevices.getUserMedia({audio:true});ctx=new AudioContext({sampleRate:16000});src=ctx.createMediaStreamSource(stream);proc=ctx.createScriptProcessor(4096,1,1);chunks=[];
- proc.onaudioprocess=e=>chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));src.connect(proc);proc.connect(ctx.destination);$("rec").disabled=true;$("stop").disabled=false;$("feedback").classList.add("hidden");$("status").textContent="🎙️ Aufnahme läuft …";
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({
+   audio:{channelCount:1,echoCancellation:false,noiseSuppression:false,autoGainControl:false}
+  });
+  mediaParts=[];
+  let preferred=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus","audio/mp4"];
+  let mime=preferred.find(x=>MediaRecorder.isTypeSupported(x))||"";
+  mediaRecorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
+  mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size)mediaParts.push(e.data)};
+  mediaRecorder.start(100);
+  $("rec").disabled=true;$("stop").disabled=false;$("feedback").classList.add("hidden");
+  $("status").textContent="🎙️ Aufnahme läuft … Sprich den ganzen Satz und klicke danach auf Prüfen.";
  }catch(e){$("status").textContent="Mikrofon: "+e.message}
 };
 $("stop").onclick=async()=>{
- $("stop").disabled=true;proc.disconnect();src.disconnect();stream.getTracks().forEach(t=>t.stop());await ctx.close();let n=chunks.reduce((s,a)=>s+a.length,0),audio=new Float32Array(n),o=0;for(let a of chunks){audio.set(a,o);o+=a.length}
- $("status").textContent="⏳ Französisch wird erkannt …";session.attempts++;session.currentAttempts++;
- try{let out=await asr(audio,{language:"fr",task:"transcribe"}),h=out.text||"",r=assess(current().text,h);$("feedback").classList.remove("hidden");$("heard").textContent=h||"—";
- $("verdict").textContent=r.good?"🟢 Gut!":"🟠 Versuch es noch einmal.";$("words").innerHTML=r.a.map((w,i)=>`<span class="word ${r.bad.includes(i)?"bad":""}">${esc(w)}</span>`).join("");
- if(r.good){$("retry").classList.add("hidden");$("next").classList.remove("hidden");$("attemptHint").textContent="";}else{
-  $("attemptHint").textContent=session.currentAttempts>=3?"Du hast es dreimal versucht. Du kannst weitergehen; der Satz kommt später nochmals.":"Hör die Referenz nochmals an und versuche es erneut.";
-  $("next").classList.toggle("hidden",session.currentAttempts<3);
- }
- $("status").textContent="Analyse abgeschlossen.";
- }catch(e){$("status").textContent="Analysefehler: "+e.message}finally{$("rec").disabled=false}
+ $("stop").disabled=true;
+ if(!mediaRecorder||mediaRecorder.state==="inactive")return;
+ $("status").textContent="⏳ Aufnahme wird vorbereitet …";
+ await new Promise(resolve=>{
+  mediaRecorder.addEventListener("stop",resolve,{once:true});
+  mediaRecorder.stop();
+ });
+ stream.getTracks().forEach(t=>t.stop());
+ const blob=new Blob(mediaParts,{type:mediaRecorder.mimeType||"audio/webm"});
+ if(lastStudentAudioUrl)URL.revokeObjectURL(lastStudentAudioUrl);
+ lastStudentAudioUrl=URL.createObjectURL(blob);
+ $("listenOwn").classList.remove("hidden");
+ try{
+  const ab=await blob.arrayBuffer();
+  const decodeCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const decoded=await decodeCtx.decodeAudioData(ab.slice(0));
+  const mono=new Float32Array(decoded.length);
+  if(decoded.numberOfChannels===1){
+   mono.set(decoded.getChannelData(0));
+  }else{
+   for(let c=0;c<decoded.numberOfChannels;c++){
+    const ch=decoded.getChannelData(c);
+    for(let i=0;i<mono.length;i++)mono[i]+=ch[i]/decoded.numberOfChannels;
+   }
+  }
+  const targetRate=16000;
+  let audio=mono;
+  if(decoded.sampleRate!==targetRate){
+   const outLen=Math.max(1,Math.round(mono.length*targetRate/decoded.sampleRate));
+   const offline=new OfflineAudioContext(1,outLen,targetRate);
+   const b=offline.createBuffer(1,mono.length,decoded.sampleRate);
+   b.copyToChannel(mono,0);
+   const source=offline.createBufferSource();source.buffer=b;source.connect(offline.destination);source.start();
+   const rendered=await offline.startRendering();
+   audio=new Float32Array(rendered.getChannelData(0));
+  }
+  await decodeCtx.close();
+  // Trim only near-silence at the edges, while retaining a small speech margin.
+  let first=0,last=audio.length-1,thr=0.004;
+  while(first<audio.length&&Math.abs(audio[first])<thr)first++;
+  while(last>first&&Math.abs(audio[last])<thr)last--;
+  const pad=Math.round(targetRate*.18);
+  first=Math.max(0,first-pad);last=Math.min(audio.length-1,last+pad);
+  audio=audio.slice(first,last+1);
+
+  $("status").textContent="⏳ Französisch wird erkannt …";session.attempts++;session.currentAttempts++;
+  let out=await asr(audio,{language:"fr",task:"transcribe"}),h=(out.text||"").trim(),r=assess(current().text,h);
+  $("feedback").classList.remove("hidden");$("heard").textContent=h||"—";
+  $("verdict").textContent=r.good?"🟢 Gut!":"🟠 Versuch es noch einmal.";
+  $("words").innerHTML=r.a.map((w,i)=>`<span class="word ${r.bad.includes(i)?"bad":""}">${esc(w)}</span>`).join("");
+  if(r.good){$("retry").classList.add("hidden");$("next").classList.remove("hidden");$("attemptHint").textContent="";}
+  else{
+   $("retry").classList.remove("hidden");
+   $("attemptHint").textContent=session.currentAttempts>=3?"Du hast es dreimal versucht. Du kannst weitergehen; der Satz kommt später nochmals.":"Hör die Referenz nochmals an und versuche es erneut.";
+   $("next").classList.toggle("hidden",session.currentAttempts<3);
+  }
+  $("status").textContent="Analyse abgeschlossen.";
+ }catch(e){
+  $("status").textContent="Analysefehler: "+e.message;
+ }finally{$("rec").disabled=false}
 };
+$("listenOwn").onclick=()=>{if(lastStudentAudioUrl)new Audio(lastStudentAudioUrl).play()};
 $("retry").onclick=()=>{$("feedback").classList.add("hidden");$("status").textContent="Bereit für den nächsten Versuch."};
 $("next").onclick=()=>{
  let good=$("verdict").textContent.includes("Gut"),item=session.queue[session.index];session.practiced++;
