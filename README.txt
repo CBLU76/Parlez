@@ -1,6 +1,7 @@
-Parlez – fertige Schüler-Version
-Optischer Feinschliff auf Basis der funktionierenden V3.
-Die TTS-Einstellungen bleiben unverändert:
-Google français (fr-FR), Normal 0.90, Langsam 0.72.
-Funktionen: Anhören, Stoppen, Weiter, Von vorne, direkter Satzwechsel.
-Für GitHub Pages einfach index.html ersetzen.
+Parlez – fertige Schüler-Version mit leerem Textfeld
+
+Änderung:
+- Beim Öffnen ist das Textfeld vollständig leer.
+- Der Hinweis „Écris ton texte ici…“ verschwindet automatisch, sobald geschrieben wird.
+
+Alle übrigen Funktionen und TTS-Einstellungen sind unverändert.
